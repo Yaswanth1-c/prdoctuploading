@@ -91,8 +91,13 @@ router.post(
 // Retrieve all products
 router.get("/:products", async (req: Request, res: Response) => {
   try {
-    // Find all products in the MongoDB database
-    const products = await Product.find();
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    // Find all products in the MongoDB database with pagination
+    const products = await Product.find().skip(skip).limit(limit);
+
     // Send the products as a JSON response
     res.json(products);
   } catch (error) {
@@ -130,10 +135,22 @@ router.get("/", async (req: Request, res: Response) => {
       }
     }
 
+    // Set pagination options
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
     // Find all products that match the specified filters
-    const products = await Product.find(filters);
-    // Send the products as a JSON response
-    res.json(products);
+    const products = await Product.find(filters).skip(skip).limit(limit);
+
+    // Count the total number of products that match the specified filters
+    const count = await Product.countDocuments(filters);
+
+    // Calculate the total number of pages
+    const totalPages = Math.ceil(count / limit);
+
+    // Send the products and pagination data as a JSON response
+    res.json({ products, count, totalPages });
   } catch (error) {
     // Send a 500 error response if there was an error retrieving products from the database
     res.status(500).json({ error: "Error retrieving products from MongoDB" });
